@@ -1,5 +1,10 @@
 numpy
 pandas
-matplotlib
+yfinance
 scipy
+scikit-learn
+matplotlib
+seaborn
+dash
+plotly
 jupyter
