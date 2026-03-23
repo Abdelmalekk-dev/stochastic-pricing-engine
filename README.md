@@ -6,10 +6,31 @@ A full-stack financial engineering and data science pipeline that prices Europea
 
 This project bridges theoretical quantitative finance and applied machine learning. It was built to demonstrate proficiency in stochastic calculus, object-oriented software architecture, and data pipeline engineering.
 
+## Mathematical Foundation
+
+The engine simulates asset price paths following **Geometric Brownian Motion (GBM)**. Under the risk-neutral measure, the underlying asset price $S_t$ is modeled by the following Stochastic Differential Equation (SDE):
+
+$$dS_t = r S_t dt + \sigma S_t dW_t$$
+
+**Where:**
+* $r$: Risk-free interest rate.
+* $\sigma$: Annualized volatility.
+* $dW_t$: A Wiener process (standard Brownian motion).
+
+### Monte Carlo Discretization
+
+To price the option, we use the exact solution to the SDE, discretized over $N$ time steps to simulate $M$ independent paths:
+
+$$S_{t+\Delta t} = S_t \exp\left( \left(r - \frac{1}{2}\sigma^2\right)\Delta t + \sigma \sqrt{\Delta t} Z \right)$$
+
+where $Z \sim N(0,1)$. The final option price is calculated as the discounted expected payoff:
+
+$$\text{Price} = e^{-rT} \mathbb{E}[\max(S_T - K, 0)]$$
+
 ### Core Features
 
 1. **Vectorized Pricing Engine (`models/engine.py`)**
-   - Solves the Stochastic Differential Equation (SDE) for Geometric Brownian Motion.
+   - Solves the SDE for Geometric Brownian Motion using the Euler-Maruyama discretization.
    - Utilizes `NumPy` vectorization to simulate thousands of asset paths simultaneously without relying on slow `for` loops.
    - Calculates the discounted expected payoff based on the Law of Total Expectation.
 
@@ -45,7 +66,7 @@ This project bridges theoretical quantitative finance and applied machine learni
 ## Installation & Usage
 
 1. **Clone the repository:**
-   git clone https://github.com/YourUsername/stochastic-pricing-engine.git
+   git clone https://github.com/Abdelmalekk-dev/stochastic-pricing-engine.git
    cd stochastic-pricing-engine
 
 2. **Install dependencies:**

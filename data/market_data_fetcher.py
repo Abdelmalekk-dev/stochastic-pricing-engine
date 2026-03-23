@@ -2,91 +2,94 @@ import os
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import logging
+
+# Configure logging to show time, level, and message
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 class MarketDataFetcher:
     """
-    A robust data pipeline to fetch, clean, and process historical 
+    A professional data pipeline to fetch, clean, and process historical 
     market data for quantitative modeling.
     """
     def __init__(self, tickers: list, start_date: str, end_date: str):
-        """
-        Initializes the fetcher with target equities and timeframes.
-        """
         self.tickers = tickers
         self.start_date = start_date
         self.end_date = end_date
-        
-        # Dynamically locate the data/ directory relative to this script
         self.data_dir = os.path.dirname(os.path.abspath(__file__))
         
     def fetch_and_process(self) -> dict:
-        """
-        Downloads data, calculates logarithmic returns, and computes annualized volatility.
-        Saves the clean data as CSV files.
-        """
         processed_data = {}
         
         for ticker in self.tickers:
-            print(f"Fetching data for {ticker}...")
+            logging.info(f"Initiating data fetch for {ticker}...")
             
-            # Download historical daily data
-            df = yf.download(ticker, start=self.start_date, end=self.end_date, progress=False)
-            
-            if df.empty:
-                print(f"Warning: No data found for {ticker}.")
-                continue
-            
-            # Standardize column selection (handling yfinance's backend changes)
-            # Check for 'Adj Close' first, fallback to 'Close' if missing
-            price_col = 'Adj Close' if 'Adj Close' in df.columns.get_level_values(0) else 'Close'
-            
-            if isinstance(df.columns, pd.MultiIndex):
-                # Extract the target price column
-                df = df[price_col].copy()
-                # If yfinance left the ticker name as a second column level, isolate the series
-                if isinstance(df, pd.DataFrame):
-                    df = df.iloc[:, 0].to_frame()
-                else:
-                    df = df.to_frame()
-            else:
-                df = df[[price_col]].copy()
+            try:
+                # 1. Wrapped Download in Try-Except
+                df = yf.download(ticker, start=self.start_date, end=self.end_date, progress=False)
                 
-            df.columns = ['Price']
-            
-            # Clean missing values: Forward fill first, then drop any remaining NaNs
-            df.ffill(inplace=True)
-            df.dropna(inplace=True)
-            
-            # Calculate daily logarithmic returns
-            df['Log_Return'] = np.log(df['Price'] / df['Price'].shift(1))
-            
-            # Calculate rolling 30-day historical volatility (annualized)
-            # Volatility = StdDev(log returns) * sqrt(252 trading days)
-            df['Rolling_Volatility_30D'] = df['Log_Return'].rolling(window=30).std() * np.sqrt(252)
-            
-            # Drop the NaN values created by the rolling window and shift
-            df.dropna(inplace=True)
-            
-            processed_data[ticker] = df
-            
-            # Export to CSV inside the data/ folder
-            csv_path = os.path.join(self.data_dir, f"{ticker}_historical_data.csv")
-            df.to_csv(csv_path)
-            print(f"Saved cleaned data to: {csv_path}\n")
+                if df.empty:
+                    logging.warning(f"No data returned for {ticker} within the specified range.")
+                    continue
+                
+                # 2. Minimum Data Requirement Check
+                # We need at least 30 days of data for the rolling volatility window
+                if len(df) < 30:
+                    logging.error(f"Insufficient data for {ticker}. Found {len(df)} rows, need at least 30.")
+                    continue
+
+                # Handle multi-index columns from yfinance
+                price_col = 'Adj Close' if 'Adj Close' in df.columns.get_level_values(0) else 'Close'
+                if isinstance(df.columns, pd.MultiIndex):
+                    df = df[price_col].copy()
+                    df = df.iloc[:, 0].to_frame() if isinstance(df, pd.DataFrame) else df.to_frame()
+                else:
+                    df = df[[price_col]].copy()
+                
+                df.columns = ['Price']
+                df.ffill(inplace=True)
+                df.dropna(inplace=True)
+
+                # 3. Processing Mathematical Metrics
+                df['Log_Return'] = np.log(df['Price'] / df['Price'].shift(1))
+                
+                # Annualized Volatility calculation:
+                # $$\sigma_{ann} = \text{std}(\text{returns}) \times \sqrt{252}$$
+                df['Rolling_Volatility_30D'] = df['Log_Return'].rolling(window=30).std() * np.sqrt(252)
+                
+                # Clean up NaN from shifts and rolling windows
+                df.dropna(inplace=True)
+                
+                # Final check after processing
+                if df.empty:
+                    logging.warning(f"Processing {ticker} resulted in an empty dataset (likely due to NaNs).")
+                    continue
+
+                processed_data[ticker] = df
+                
+                # Save results
+                csv_path = os.path.join(self.data_dir, f"{ticker}_historical_data.csv")
+                df.to_csv(csv_path)
+                logging.info(f"Successfully saved {ticker} data to: {csv_path}")
+
+            except Exception as e:
+                # Catch-all for network issues, API changes, or disk permission errors
+                logging.error(f"An unexpected error occurred while processing {ticker}: {str(e)}")
             
         return processed_data
 
 if __name__ == "__main__":
-    # Target German equities (Allianz and Siemens)
-    target_equities = ['ALV.DE', 'SIE.DE']
+    target_equities = ['ALV.DE', 'SIE.DE'] # Allianz and Siemens
     
-    # Instantiate the pipeline for the last 5 years
     fetcher = MarketDataFetcher(
         tickers=target_equities, 
         start_date="2021-01-01", 
         end_date="2026-03-23" 
     )
     
-    # Execute the pipeline
     market_data = fetcher.fetch_and_process()
-    print("Market data ingestion and processing complete.")
+    logging.info("Pipeline execution complete.")
