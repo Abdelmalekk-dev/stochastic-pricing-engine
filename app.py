@@ -80,7 +80,7 @@ app.layout = dbc.Container([
                     
                     html.Div(id='price-output', className="mt-4 p-3 border rounded bg-light text-center")
                 ])
-            ], elevation=True)
+            ], className="shadow-sm")
         ], width=3),
 
         # Right Panel: Visualization & Risk Metrics
@@ -124,7 +124,7 @@ def update_dashboard(S0, K, T, sigma, r, option_type):
     
     # Run the simulation and calculate Greeks
     price, paths = engine.price_european_option(option_type=option_type)
-    greeks = engine.calculate_greeks()
+    greeks = engine.calculate_greeks(option_type=option_type)
     
     # --- PLOTLY FIGURE LOGIC ---
     time_steps = np.linspace(0, T, engine.num_steps + 1)

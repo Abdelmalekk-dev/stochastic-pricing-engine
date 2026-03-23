@@ -29,13 +29,21 @@ class MonteCarloPricingEngine:
         paths = np.cumprod(paths, axis=0)
         return paths
 
-    def price_european_call(self):
+    def price_european_option(self, option_type="call"):
+        """Prices a Call or Put option and returns the price and full paths."""
         paths = self.generate_paths()
-        payoffs = np.maximum(paths[-1] - self.K, 0)
+        S_T = paths[-1] # Terminal prices at maturity
+        
+        # Determine payoff based on option type
+        if option_type.lower() == "call":
+            payoffs = np.maximum(S_T - self.K, 0)
+        else: # Put Option
+            payoffs = np.maximum(self.K - S_T, 0)
+            
         price = np.exp(-self.r * self.T) * np.mean(payoffs)
         return price, paths
 
-    def calculate_greeks(self, h_s=1.0, h_v=0.01):
+    def calculate_greeks(self, option_type="call", h_s=1.0, h_v=0.01):
         """
         Calculates Delta and Vega using the Central Difference Method.
         Delta (Δ): Sensitivity to Stock Price.
@@ -46,15 +54,15 @@ class MonteCarloPricingEngine:
         
         # --- Delta (Central Difference) ---
         self.S0 = orig_s0 + h_s
-        p_up, _ = self.price_european_call()
+        p_up, _ = self.price_european_option(option_type)
         self.S0 = orig_s0 - h_s
-        p_down, _ = self.price_european_call()
+        p_down, _ = self.price_european_option(option_type)
         delta = (p_up - p_down) / (2 * h_s)
         self.S0 = orig_s0 # Reset
 
         # --- Vega (Bumping Volatility) ---
         self.sigma = orig_sigma + h_v
-        p_v_up, _ = self.price_european_call()
+        p_v_up, _ = self.price_european_option(option_type)
         vega = (p_v_up - ((p_up + p_down)/2)) / (h_v * 100) # Per 1% vol change
         self.sigma = orig_sigma # Reset
 
