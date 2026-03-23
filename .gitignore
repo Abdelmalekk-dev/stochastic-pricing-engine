@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# --- Custom Project Additions ---
+
+# Ignore downloaded market data (to keep your GitHub repo lightweight and clean)
+data/*.csv
+data/*.json
+data/*.xlsx
+data/*.parquet
+
+# OS generated files (prevents annoying Mac/Windows hidden files from uploading)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
