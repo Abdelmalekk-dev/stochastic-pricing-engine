@@ -1,1 +1,1 @@
-from .engine import MonteCarloPricingEngine
+from .engine import MonteCarloPricingEngine, FiniteDifferencePricingEngine

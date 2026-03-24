@@ -1,89 +1,57 @@
-# Quantitative Options Pricing Engine & Volatility Analyzer
+# Advanced Quantitative Pricing Engine & Risk Analytics Dashboard
 
-A full-stack financial engineering and data science pipeline that prices European options using a vectorized Monte Carlo engine, analyzes real-world market volatility, and deploys the results via an interactive web dashboard.
+An interactive, production-grade options pricing engine and risk analytics dashboard. This project bridges theoretical stochastic calculus with modern data science practices, providing a comprehensive toolkit for simulating, pricing, and analyzing European options under varying probability measures.
 
-## Project Overview
+## 📌 Project Overview
 
-This project bridges theoretical quantitative finance and applied machine learning. It was built to demonstrate proficiency in stochastic calculus, object-oriented software architecture, and data pipeline engineering.
+This engine goes beyond standard Black-Scholes implementations by integrating advanced numerical methods and stochastic integration techniques. It serves as a practical, computational proof of core financial mathematics theorems, featuring a dual-engine architecture that compares probabilistic simulations with deterministic partial differential equation (PDE) solvers.
 
-## Mathematical Foundation
+### 🚀 Core Advanced Features
 
-The engine simulates asset price paths following **Geometric Brownian Motion (GBM)**. Under the risk-neutral measure, the underlying asset price $S_t$ is modeled by the following Stochastic Differential Equation (SDE):
+#### 1. The Feynman-Kac Representation (PDE vs. Monte Carlo)
+The engine demonstrates the Feynman-Kac theorem by pricing options using two distinct methods simultaneously:
+* **Monte Carlo Simulation:** A probabilistic approach simulating Geometric Brownian Motion (GBM) paths.
+* **Implicit Finite Difference Method (FDM):** A deterministic solver for the Black-Scholes Cauchy problem. 
+* **Result:** Validates that the expected value of the stochastic payoff exactly matches the deterministic PDE solution at $t=0$, ensuring robust, cross-verified pricing.
 
-$$dS_t = r S_t dt + \sigma S_t dW_t$$
+#### 2. Girsanov's Theorem & Measure Change ($\mathbb{P}$ vs. $\mathbb{Q}$)
+The data pipeline explicitly models the transition between the physical and risk-neutral worlds:
+* **Real-World Measure ($\mathbb{P}$):** Extracts historical realized volatility ($\sigma$) and true historical drift ($\mu$) from market data.
+* **Risk-Neutral Measure ($\mathbb{Q}$):** Prices derivatives utilizing the risk-free rate ($r$).
+* **Market Price of Risk ($\theta$):** Calculates the compensation demanded per unit of volatility: $\theta = \frac{\mu - r}{\sigma}$.
+* **Result:** The dashboard visually plots expected asset paths under both measures, demonstrating the Radon-Nikodym derivative's effect on the Wiener process: $dW_t^{\mathbb{Q}} = dW_t^{\mathbb{P}} + \theta dt$.
 
-**Where:**
-* $r$: Risk-free interest rate.
-* $\sigma$: Annualized volatility.
-* $dW_t$: A Wiener process (standard Brownian motion).
+#### 3. Martingale Variance Reduction
+To achieve production-level computational efficiency, the Monte Carlo engine utilizes advanced variance reduction techniques:
+* **Martingale Control Variates:** Leverages the property that the discounted stock price is a martingale under $\mathbb{Q}$ (i.e., $\mathbb{E}^{\mathbb{Q}}[e^{-rT} S_T] = S_0$). By using the simulated asset path as a control variate, the engine drastically reduces simulation variance and sampling error.
+* **Antithetic Variates:** Mirrors random shocks to ensure symmetric distributions and faster convergence.
 
-### Monte Carlo Discretization
+---
 
-To price the option, we use the exact solution to the SDE, discretized over $N$ time steps to simulate $M$ independent paths:
+## 🛠️ Technical Stack
+* **Backend Mathematical Engine:** `NumPy` (Vectorized Operations), `SciPy` (Linear Algebra for Implicit FDM).
+* **Data Pipeline:** `pandas`, `yfinance` (Live Market Data & Historical Parameter Extraction).
+* **Frontend Dashboard:** `Dash`, `Plotly` (Interactive UI, Real-time Visualizations).
 
-$$S_{t+\Delta t} = S_t \exp\left( \left(r - \frac{1}{2}\sigma^2\right)\Delta t + \sigma \sqrt{\Delta t} Z \right)$$
+## 📂 Repository Structure
 
-where $Z \sim N(0,1)$. The final option price is calculated as the discounted expected payoff:
-
-$$\text{Price} = e^{-rT} \mathbb{E}[\max(S_T - K, 0)]$$
-
-### Core Features
-
-1. **Vectorized Pricing Engine (`models/engine.py`)**
-   - Solves the SDE for Geometric Brownian Motion using the Euler-Maruyama discretization.
-   - Utilizes `NumPy` vectorization to simulate thousands of asset paths simultaneously without relying on slow `for` loops.
-   - Calculates the discounted expected payoff based on the Law of Total Expectation.
-
-2. **Market Data Pipeline (`data/market_data_fetcher.py`)**
-   - Automated script using `yfinance` to ingest historical daily closing prices for major DAX-listed equities.
-   - Cleans missing values, calculates logarithmic returns, and computes rolling 30-day annualized historical volatility.
-
-3. **Machine Learning & Volatility Analysis (`notebooks/`)**
-   - **Convergence Proofs:** Visually demonstrates the Central Limit Theorem and the convergence of the Monte Carlo estimate to the theoretical true price as simulations approach infinity.
-   - **Volatility Smile Regression:** Uses `scikit-learn` to build a polynomial regression model that maps the non-linear "Volatility Smile" observed in real-world options markets, contrasting it against the Black-Scholes assumption of constant volatility.
-
-4. **Interactive Dashboard (`app.py`)**
-   - A lightweight web application built with `Dash` and `Plotly`.
-   - Allows users to dynamically adjust strike prices, time to maturity, and volatility to visualize the shifting simulated asset paths in real-time.
-
-## Repository Structure
-
+```text
 ├── data/ 
+
 │   ├── .gitkeep
+
 │   └── market_data_fetcher.py 
+
 ├── models/ 
+
 │   ├── __init__.py 
-│   └── engine.py 
-├── notebooks/ 
-│   ├── 01_distribution_and_convergence.ipynb 
-│   └── 02_implied_volatility_regression.ipynb 
+
+│   └── engine.py  
+
 ├── app.py 
+
 ├── requirements.txt 
+
 ├── .gitignore
+
 └── README.md
-
-
-## Installation & Usage
-
-1. **Clone the repository:**
-   git clone https://github.com/Abdelmalekk-dev/stochastic-pricing-engine.git
-   cd stochastic-pricing-engine
-
-2. **Install dependencies:**
-   pip install -r requirements.txt
-
-3. **Fetch real-world market data:**
-   python data/market_data_fetcher.py
-
-4. **Run the interactive dashboard:**
-   python app.py
-
-## Tech Stack
-* **Mathematics & Core Logic:** Python, NumPy, SciPy
-* **Data Engineering:** Pandas, yfinance
-* **Machine Learning:** Scikit-learn
-* **Visualization & Deployment:** Matplotlib, Seaborn, Dash, Plotly
-* **Development Environment:** Jupyter Notebook
-
-## License
-This project is licensed under the MIT License.
